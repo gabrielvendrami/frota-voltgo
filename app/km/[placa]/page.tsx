@@ -1,6 +1,7 @@
 import { ensureSchema, sql } from '@/lib/db';
-import { formatKm, inicioCicloAtual } from '@/lib/constants';
+import { formatKm, inicioCicloAtual, proximaRevisao } from '@/lib/constants';
 import { registrarKmMotorista } from './actions';
+import { KmForm } from './KmForm';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export default async function EnvioKmPage({
   const placaNorm = normalizarPlaca(params.placa);
 
   const { rows } = await sql`
-    SELECT id, placa, modelo, cor, dia_fechamento
+    SELECT id, placa, modelo, cor, dia_fechamento, ultima_revisao_marco
     FROM veiculos
     WHERE UPPER(REGEXP_REPLACE(placa, '[^A-Za-z0-9]', '', 'g')) = ${placaNorm}
   `;
@@ -51,6 +52,7 @@ export default async function EnvioKmPage({
   const jaEnviouEssaSemana = !!ultima && new Date(ultima.data).toISOString().slice(0, 10) >= inicioCiclo;
 
   if (searchParams.ok === '1') {
+    const revisao = ultima ? proximaRevisao(Number(ultima.km), Number(veiculo.ultima_revisao_marco || 0)) : null;
     return (
       <Shell>
         <div className="card p-6 text-center">
@@ -61,6 +63,28 @@ export default async function EnvioKmPage({
             semana.
           </p>
         </div>
+
+        {revisao?.proxima && (
+          <div
+            className={`card p-5 mt-5 text-sm ${
+              revisao.atrasada ? 'bg-red-50 border-red-300 text-red-800' : 'bg-amber-50 border-amber-300 text-amber-900'
+            }`}
+          >
+            <p className="font-bold text-base mb-1">
+              {revisao.atrasada ? '🚨 Revisão atrasada!' : '🔧 Atenção: revisão chegando!'}
+            </p>
+            <p>
+              {revisao.atrasada
+                ? `O carro já passou dos ${formatKm(revisao.proximoMarco)} (marco da revisão de fábrica) em ${formatKm(
+                    Math.abs(revisao.faltam)
+                  )}.`
+                : `Faltam apenas ${formatKm(revisao.faltam)} para a revisão de fábrica dos ${formatKm(
+                    revisao.proximoMarco
+                  )}.`}{' '}
+              Avise a locadora agora para agendar — a revisão não pode passar do limite, senão pode perder a garantia.
+            </p>
+          </div>
+        )}
       </Shell>
     );
   }
@@ -97,36 +121,7 @@ export default async function EnvioKmPage({
         </ErroMsg>
       )}
 
-      <form action={registrarKmMotorista.bind(null, params.placa)} className="card p-5 space-y-5">
-        <div>
-          <label className="label-lg block mb-2 text-base">Qual a quilometragem atual do carro?</label>
-          <input
-            name="km"
-            type="number"
-            inputMode="numeric"
-            min={0}
-            required
-            placeholder="ex: 18540"
-            className="field-lg text-xl text-center"
-          />
-        </div>
-
-        <div>
-          <label className="label-lg block mb-2 text-base">Tire uma foto do painel (hodômetro)</label>
-          <input
-            name="foto"
-            type="file"
-            accept="image/*"
-            capture="environment"
-            required
-            className="field-lg !py-3"
-          />
-        </div>
-
-        <button type="submit" className="btn-primary w-full text-lg">
-          Enviar
-        </button>
-      </form>
+      <KmForm action={registrarKmMotorista.bind(null, params.placa)} />
 
       <p className="text-center text-xs text-slate-400 mt-5">⚡ VoltGo Frota</p>
     </Shell>

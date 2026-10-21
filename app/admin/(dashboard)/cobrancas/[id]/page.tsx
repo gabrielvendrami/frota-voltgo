@@ -8,6 +8,9 @@ import {
   whatsappLinkTo,
   KM_FRANQUIA_MENSAL,
   VALOR_KM_EXCEDENTE,
+  PIX_KEY,
+  PIX_MERCHANT_NAME,
+  PIX_MERCHANT_CITY,
 } from '@/lib/constants';
 import { gerarPixCopiaECola } from '@/lib/pix';
 import { marcarComoPaga } from '../actions';
@@ -32,14 +35,10 @@ export default async function CobrancaDetalhePage({ params }: { params: { id: st
     );
   }
 
-  const pixKey = process.env.PIX_KEY || '';
-  const merchantName = process.env.PIX_MERCHANT_NAME || 'VOLTGO';
-  const merchantCity = process.env.PIX_MERCHANT_CITY || 'SAO PAULO';
-
   const pixCode = gerarPixCopiaECola({
-    pixKey,
-    merchantName,
-    merchantCity,
+    pixKey: PIX_KEY,
+    merchantName: PIX_MERCHANT_NAME,
+    merchantCity: PIX_MERCHANT_CITY,
     amount: Number(c.valor_total),
     description: `Locacao ${c.placa}`,
     txid: `COB${c.id}`,
@@ -75,7 +74,12 @@ export default async function CobrancaDetalhePage({ params }: { params: { id: st
 
   return (
     <div>
-      <PageHeader title="Cobrança gerada" subtitle={`${c.placa} · ${c.motorista_nome}`} />
+      <PageHeader
+        title="Cobrança gerada"
+        subtitle={`${c.placa} · ${c.motorista_nome}`}
+        backHref="/admin/cobrancas"
+        backLabel="Cobranças"
+      />
 
       <div className="card p-5 mb-5">
         <dl className="space-y-2 text-sm">

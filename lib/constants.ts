@@ -11,6 +11,13 @@ export const VALOR_KM_EXCEDENTE = Number(process.env.VALOR_KM_EXCEDENTE || 0.7);
 // Franquia do seguro em caso de sinistro (Cláusula 3.2 do contrato).
 export const FRANQUIA_SINISTRO_VALOR = Number(process.env.FRANQUIA_SINISTRO_VALOR || 8845);
 
+// Dados do Pix. Valem os da variável de ambiente (Vercel → Settings →
+// Environment Variables); se ela não estiver definida (ou estiver em branco),
+// cai nestes padrões — assim nunca sai um código "copia e cola" com chave vazia.
+export const PIX_KEY = (process.env.PIX_KEY || '').trim() || '06914540000167';
+export const PIX_MERCHANT_NAME = (process.env.PIX_MERCHANT_NAME || '').trim() || 'EDINALDO ALVES RIBEIRO';
+export const PIX_MERCHANT_CITY = (process.env.PIX_MERCHANT_CITY || '').trim() || 'BAURU SP';
+
 export function formatBRL(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
@@ -52,17 +59,35 @@ export function inicioCicloAtual(diaFechamento: number, referencia: Date = new D
   return d.toISOString().slice(0, 10);
 }
 
+export const REVISAO_PASSO_KM = 20000;
+// Avisar quando faltar isto (ou menos) pra revisão. O contrato (cláusula 4.3)
+// exige aviso com pelo menos 1.000 km de antecedência.
+export const REVISAO_AVISO_KM = 1000;
+
 /**
- * Próximo marco de revisão de fábrica (a cada 20.000 km, cláusula 4.2 do
- * contrato) a partir da última quilometragem conhecida, e quantos km faltam
- * pra chegar lá. Usado pra avisar com antecedência (cláusula 4.3 pede pelo
- * menos 1.000 km de aviso prévio).
+ * Situação da revisão de fábrica (a cada 20.000 km, cláusula 4.2 do contrato).
+ * `marcoFeito` é o último marco já revisado (0 = nenhuma revisão feita ainda);
+ * a próxima é sempre o marco seguinte. `faltam` fica negativo quando o carro
+ * já passou do marco sem a revisão ter sido marcada como feita (atrasada).
  */
-export function proximaRevisao(ultimoKm: number) {
-  const PASSO = 20000;
-  const proximoMarco = Math.ceil((ultimoKm + 1) / PASSO) * PASSO;
+export function proximaRevisao(ultimoKm: number, marcoFeito: number = 0) {
+  const proximoMarco = marcoFeito + REVISAO_PASSO_KM;
   const faltam = proximoMarco - ultimoKm;
-  return { proximoMarco, faltam };
+  return {
+    proximoMarco,
+    faltam,
+    atrasada: faltam < 0,
+    proxima: faltam <= REVISAO_AVISO_KM, // dentro da janela de aviso (inclui atrasada)
+  };
+}
+
+/** Dias entre hoje (UTC) e uma data YYYY-MM-DD/Date. Negativo = já passou. */
+export function diasAte(data: string | Date): number {
+  const alvo = new Date(data);
+  const alvoUtc = Date.UTC(alvo.getUTCFullYear(), alvo.getUTCMonth(), alvo.getUTCDate());
+  const hoje = new Date();
+  const hojeUtc = Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth(), hoje.getUTCDate());
+  return Math.round((alvoUtc - hojeUtc) / 86400000);
 }
 
 export function whatsappLinkTo(telefone: string, message: string) {

@@ -72,13 +72,52 @@ O código "copia e cola" é gerado localmente (sem depender de nenhum serviço e
 ou gateway), seguindo o padrão oficial do Banco Central (BR Code / EMV). Configure
 pelas variáveis de ambiente:
 
-- `PIX_KEY` — a chave Pix que recebe (já veio preenchida com o CNPJ informado:
-  `06914540000167`).
-- `PIX_MERCHANT_NAME` — "EDINALDO ALVES RIBEIRO"
-- `PIX_MERCHANT_CITY` — "BAURU SP"
+- `PIX_KEY` — a chave Pix que recebe: `06914540000167`.
+- `PIX_MERCHANT_NAME` — nome do titular, como está no banco: `EDINALDO ALVES RIBEIRO`
+  (até 25 caracteres; o sistema remove acentos e corta automaticamente).
+- `PIX_MERCHANT_CITY` — cidade do titular: `BAURU SP` (até 15 caracteres).
+
+> **Importante:** o README e o `.env.example` são só documentação — o que vale em
+> produção são as variáveis cadastradas na Vercel (**Settings → Environment
+> Variables**). Cadastre as três e faça **Redeploy**. Se alguma estiver vazia, o
+> sistema usa os valores acima como padrão (nunca mais gera Pix com chave vazia).
 
 Esses mesmos valores também aparecem no texto do contrato (nome/CNPJ da locadora e
 cidade do foro) — ajuste-os antes de gerar contratos de verdade.
+
+## Multas
+
+Menu **Multas** no painel. O Senatram não tem API aberta (exige login gov.br), então o
+lançamento é manual: placa, data da infração, valor e **prazo para indicar o condutor**.
+O sistema:
+
+- vincula automaticamente o motorista que estava com o carro na data da infração;
+- mostra a contagem regressiva do prazo (vermelho se vencido ou ≤ 7 dias) e destaca
+  na tela inicial em **Pendências**;
+- tem botão de WhatsApp com o aviso pro motorista e status (a indicar → indicada →
+  paga).
+
+Como os carros estão no CNPJ, perder o prazo de indicação gera a multa NIC (valor
+multiplicado, cláusula 5.2 do contrato).
+
+## Revisões (a cada 20.000 km)
+
+Em **Veículos**, cada carro mostra a próxima revisão. Quando faltam ≤ 1.000 km (ou já
+passou), aparece alerta no painel e botão de WhatsApp pro motorista. O motorista
+também vê um aviso na tela de confirmação do envio semanal. Depois de fazer a revisão,
+clique em **✓ Revisão feita** (grava o marco em `ultima_revisao_marco`). Ao cadastrar
+um carro que já passou de revisões, informe o marco da última já feita.
+
+## Cobrança do excedente
+
+Franquia de 8.000 km/mês: o excedente é cobrado **uma vez por mês** (de forma
+incremental — se já cobrou parte no mês, só cobra a diferença nas semanas seguintes).
+
+## Foto do hodômetro
+
+Botões grandes "Tirar foto agora" e "escolher da galeria", prévia, foto reduzida no
+próprio celular antes de enviar (limite do servidor: 4 MB). No painel, "ver foto" abre
+na mesma página (janela sobre a tela).
 
 ## Fotos do hodômetro (Vercel Blob)
 
@@ -162,7 +201,7 @@ npm run dev
 ## Próximos passos sugeridos
 
 - **Controle financeiro / despesas**: dá pra evoluir a tabela `cobrancas` (já existe)
-  somando também custos (manutenção, recarga, multas) por veículo, e construir um
+  somando também custos (manutenção, recarga, valor das multas) por veículo, e construir um
   relatório de resultado por carro/motorista.
 - **Múltiplos usuários no painel**: hoje é um único usuário/senha fixo via variável
   de ambiente. Se mais de uma pessoa for usar com login próprio, vale evoluir para

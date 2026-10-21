@@ -2,6 +2,7 @@ import { headers } from 'next/headers';
 import { ensureSchema, sql } from '@/lib/db';
 import { PageHeader } from '@/components/PageHeader';
 import { CopyButton } from '@/components/CopyButton';
+import { FotoViewer } from '@/components/FotoViewer';
 import { formatKm, inicioCicloAtual, nomeDiaSemana } from '@/lib/constants';
 import { createLeituraKm, deleteLeituraKm } from './actions';
 
@@ -147,9 +148,7 @@ export default async function QuilometragemPage() {
                 {l.foto_url && (
                   <>
                     {' · '}
-                    <a href={`/admin/fotos/${l.id}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-                      ver foto
-                    </a>
+                    <FotoViewer src={`/admin/fotos/${l.id}`} />
                   </>
                 )}
               </p>

@@ -105,6 +105,7 @@ async function createSchema() {
       valor_locacao_semanal NUMERIC(10,2),
       valor_seguro_semanal NUMERIC(10,2),
       dia_fechamento SMALLINT NOT NULL DEFAULT 1,
+      ultima_revisao_marco INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'disponivel',
       motorista_id INTEGER REFERENCES motoristas(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -124,6 +125,9 @@ async function createSchema() {
   // já se comportava antes disso existir — então veículos já cadastrados
   // continuam funcionando exatamente igual depois dessa migração.
   await sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS dia_fechamento SMALLINT NOT NULL DEFAULT 1`;
+  // Último marco de revisão de fábrica já feito (0 = nenhuma; 20000 = a de
+  // 20.000 km já foi feita...). A próxima revisão é sempre esse marco + 20.000.
+  await sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS ultima_revisao_marco INTEGER NOT NULL DEFAULT 0`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS vinculos (
@@ -168,6 +172,25 @@ async function createSchema() {
       valor_excedente NUMERIC(10,2) NOT NULL DEFAULT 0,
       valor_total NUMERIC(10,2) NOT NULL,
       status TEXT NOT NULL DEFAULT 'gerada',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `;
+
+  // Multas dos veículos (que estão no CNPJ da locadora): precisam ter o
+  // condutor indicado dentro do prazo, senão vira "Multa NIC" (valor
+  // multiplicado — cláusula 5.2 do contrato). Lançadas manualmente a partir
+  // da consulta no Senatram.
+  await sql`
+    CREATE TABLE IF NOT EXISTS multas (
+      id SERIAL PRIMARY KEY,
+      veiculo_id INTEGER NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
+      motorista_id INTEGER REFERENCES motoristas(id) ON DELETE SET NULL,
+      data_infracao DATE NOT NULL,
+      descricao TEXT,
+      valor NUMERIC(10,2) NOT NULL DEFAULT 0,
+      prazo_indicacao DATE,
+      status TEXT NOT NULL DEFAULT 'a_indicar',
+      observacao TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
   `;

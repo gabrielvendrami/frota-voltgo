@@ -18,12 +18,14 @@ export async function createVeiculo(formData: FormData) {
   const valorSeguro = valorSeguroRaw ? Number(valorSeguroRaw.replace(',', '.')) : null;
   const diaFechamentoRaw = String(formData.get('dia_fechamento') || '').trim();
   const diaFechamento = diaFechamentoRaw ? parseInt(diaFechamentoRaw, 10) : 1;
+  const revisaoRaw = String(formData.get('ultima_revisao_marco') || '').trim();
+  const ultimaRevisaoMarco = revisaoRaw ? Math.max(0, parseInt(revisaoRaw, 10) || 0) : 0;
 
   if (!placa) return;
 
   await sql`
-    INSERT INTO veiculos (placa, modelo, cor, ano, chassi, renavam, valor_locacao_semanal, valor_seguro_semanal, dia_fechamento)
-    VALUES (${placa}, ${modelo}, ${cor}, ${ano}, ${chassi}, ${renavam}, ${valorLocacao}, ${valorSeguro}, ${diaFechamento})
+    INSERT INTO veiculos (placa, modelo, cor, ano, chassi, renavam, valor_locacao_semanal, valor_seguro_semanal, dia_fechamento, ultima_revisao_marco)
+    VALUES (${placa}, ${modelo}, ${cor}, ${ano}, ${chassi}, ${renavam}, ${valorLocacao}, ${valorSeguro}, ${diaFechamento}, ${ultimaRevisaoMarco})
   `;
   revalidatePath('/admin/veiculos');
   revalidatePath('/admin');
@@ -48,6 +50,15 @@ export async function updateDiaFechamento(id: number, formData: FormData) {
 export async function deleteVeiculo(id: number, _formData: FormData) {
   await ensureSchema();
   await sql`DELETE FROM veiculos WHERE id = ${id}`;
+  revalidatePath('/admin/veiculos');
+  revalidatePath('/admin');
+}
+
+// Marca a revisão de um marco (ex.: 20000) como feita — a próxima passa a ser
+// esse marco + 20.000 e o alerta some.
+export async function marcarRevisaoFeita(id: number, marco: number, _formData: FormData) {
+  await ensureSchema();
+  await sql`UPDATE veiculos SET ultima_revisao_marco = ${marco} WHERE id = ${id}`;
   revalidatePath('/admin/veiculos');
   revalidatePath('/admin');
 }

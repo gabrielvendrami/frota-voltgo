@@ -7,6 +7,7 @@ import {
   KM_FRANQUIA_MENSAL,
   VALOR_KM_EXCEDENTE,
   FRANQUIA_SINISTRO_VALOR,
+  PIX_KEY,
 } from '@/lib/constants';
 import { valorPorExtenso, centavosPorExtenso, dataPorExtenso } from '@/lib/extenso';
 
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     franquiaSinistroFmt: formatBRL(FRANQUIA_SINISTRO_VALOR),
 
-    pixKey: process.env.PIX_KEY || '',
+    pixKey: PIX_KEY,
 
     dataContratoExtenso: dataPorExtenso(new Date()),
   });

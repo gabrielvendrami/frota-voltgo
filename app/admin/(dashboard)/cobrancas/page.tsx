@@ -4,6 +4,10 @@ import { PageHeader } from '@/components/PageHeader';
 import { formatBRL, formatMesExtenso } from '@/lib/constants';
 import { gerarCobranca } from './actions';
 
+function diasDesde(data: string | Date) {
+  return Math.max(0, Math.floor((Date.now() - new Date(data).getTime()) / 86400000));
+}
+
 export default async function CobrancasPage() {
   await ensureSchema();
 
@@ -85,6 +89,9 @@ export default async function CobrancasPage() {
               </p>
               <p className="text-xs text-slate-500">
                 {formatMesExtenso(c.referencia_mes)} · {formatBRL(Number(c.valor_total))}
+                {c.status !== 'paga' && (
+                  <span className="text-amber-700"> · gerada há {diasDesde(c.created_at)} dia(s)</span>
+                )}
               </p>
             </div>
             <span

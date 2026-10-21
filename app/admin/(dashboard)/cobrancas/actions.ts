@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { ensureSchema, sql } from '@/lib/db';
 import { calcularExcedente, calcularKmDoMes } from '@/lib/billing';
+import { VALOR_KM_EXCEDENTE } from '@/lib/constants';
 
 export async function gerarCobranca(vinculoId: number, formData: FormData) {
   await ensureSchema();
@@ -23,7 +24,20 @@ export async function gerarCobranca(vinculoId: number, formData: FormData) {
 
   const referenciaMes = new Date().toISOString().slice(0, 7);
   const { kmMes } = await calcularKmDoMes(vinculo.veiculo_id, referenciaMes);
-  const { kmExcedente, valorExcedente } = calcularExcedente(kmMes);
+  const { valorExcedente: valorExcedenteMes } = calcularExcedente(kmMes);
+
+  // O excedente é cobrado uma única vez no mês: se já entrou em cobranças
+  // anteriores deste veículo no mesmo mês, só cobra a diferença (se o carro
+  // rodou mais depois). Assim gerar cobrança toda semana não repete o valor.
+  const jaCobradoRes = await sql`
+    SELECT COALESCE(SUM(valor_excedente), 0)::float AS total
+    FROM cobrancas
+    WHERE veiculo_id = ${vinculo.veiculo_id} AND referencia_mes = ${referenciaMes}
+  `;
+  const jaCobrado = Number(jaCobradoRes.rows[0]?.total || 0);
+  const valorExcedente = Math.max(0, Math.round((valorExcedenteMes - jaCobrado) * 100) / 100);
+  // km correspondente ao valor ainda não cobrado (mantém a conta km × valor coerente)
+  const kmExcedente = valorExcedente > 0 ? Math.round(valorExcedente / VALOR_KM_EXCEDENTE) : 0;
   const valorTotal = Math.round((valorSemanal + valorExcedente) * 100) / 100;
 
   const insert = await sql`

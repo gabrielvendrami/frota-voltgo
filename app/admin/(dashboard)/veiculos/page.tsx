@@ -1,8 +1,8 @@
 import { ensureSchema, sql } from '@/lib/db';
 import { PageHeader } from '@/components/PageHeader';
 import { StatusSelect } from '@/components/StatusSelect';
-import { formatBRL, formatKm, DIAS_SEMANA, proximaRevisao } from '@/lib/constants';
-import { createVeiculo, deleteVeiculo, updateVeiculoStatus, updateDiaFechamento } from './actions';
+import { formatBRL, formatKm, DIAS_SEMANA, proximaRevisao, whatsappLinkTo } from '@/lib/constants';
+import { createVeiculo, deleteVeiculo, updateVeiculoStatus, updateDiaFechamento, marcarRevisaoFeita } from './actions';
 
 const STATUS_OPTIONS = [
   { value: 'disponivel', label: 'Disponível' },
@@ -24,7 +24,7 @@ export default async function VeiculosPage() {
   await ensureSchema();
   const { rows } = await sql`
     SELECT
-      v.*, m.nome AS motorista_nome,
+      v.*, m.nome AS motorista_nome, m.telefone AS motorista_telefone,
       lk.km AS ultima_km
     FROM veiculos v
     LEFT JOIN motoristas m ON m.id = v.motorista_id
@@ -88,6 +88,18 @@ export default async function VeiculosPage() {
             ))}
           </select>
         </div>
+        <div className="md:col-span-2">
+          <label className="label-lg">Última revisão de fábrica já feita aos (km)</label>
+          <input
+            name="ultima_revisao_marco"
+            type="number"
+            min={0}
+            step={20000}
+            defaultValue={0}
+            className="field-lg mt-1"
+            placeholder="0 = nenhuma ainda; 20000 = já fez a de 20.000 km"
+          />
+        </div>
         <button type="submit" className="btn-primary md:col-span-2">
           + Adicionar veículo
         </button>
@@ -143,14 +155,43 @@ export default async function VeiculosPage() {
               )}
             </dl>
 
-            {v.ultima_km != null && (() => {
-              const { proximoMarco, faltam } = proximaRevisao(Number(v.ultima_km));
-              const perto = faltam <= 1000;
+            {(() => {
+              const marcoFeito = Number(v.ultima_revisao_marco || 0);
+              const rev = proximaRevisao(Number(v.ultima_km ?? 0), marcoFeito);
+              const temKm = v.ultima_km != null;
+              const msg = rev.atrasada
+                ? `Olá ${v.motorista_nome || ''}! O carro ${v.placa} já passou do marco da revisão de ${formatKm(rev.proximoMarco)}. Precisamos agendar a revisão o quanto antes, pode ser?`
+                : `Olá ${v.motorista_nome || ''}! O carro ${v.placa} está chegando na revisão de ${formatKm(rev.proximoMarco)} (faltam ${formatKm(rev.faltam)}). Vamos agendar?`;
               return (
-                <p className={`text-xs mt-3 ${perto ? 'text-amber-700 font-medium' : 'text-slate-400'}`}>
-                  {perto ? '⚠️ ' : '🔧 '}
-                  Próxima revisão aos {formatKm(proximoMarco)} — faltam {formatKm(faltam)}
-                </p>
+                <div className="mt-3 space-y-2">
+                  <p className={`text-xs ${temKm && rev.proxima ? (rev.atrasada ? 'text-red-700 font-semibold' : 'text-amber-700 font-medium') : 'text-slate-400'}`}>
+                    {temKm && rev.proxima ? (rev.atrasada ? '🚨 ' : '⚠️ ') : '🔧 '}
+                    {temKm
+                      ? rev.atrasada
+                        ? `Revisão dos ${formatKm(rev.proximoMarco)} ATRASADA em ${formatKm(Math.abs(rev.faltam))}`
+                        : `Próxima revisão aos ${formatKm(rev.proximoMarco)} — faltam ${formatKm(rev.faltam)}`
+                      : `Próxima revisão aos ${formatKm(rev.proximoMarco)} (sem leitura de KM ainda)`}
+                  </p>
+                  {temKm && rev.proxima && (
+                    <div className="flex flex-wrap gap-2">
+                      {v.motorista_telefone && (
+                        <a
+                          href={whatsappLinkTo(v.motorista_telefone, msg)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn-secondary !min-h-[44px] !py-2 !px-4 text-sm"
+                        >
+                          Avisar motorista no WhatsApp ↗
+                        </a>
+                      )}
+                      <form action={marcarRevisaoFeita.bind(null, v.id, rev.proximoMarco)}>
+                        <button className="btn-secondary !min-h-[44px] !py-2 !px-4 text-sm">
+                          ✓ Revisão de {formatKm(rev.proximoMarco)} feita
+                        </button>
+                      </form>
+                    </div>
+                  )}
+                </div>
               );
             })()}
 
