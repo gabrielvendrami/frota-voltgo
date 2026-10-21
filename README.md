@@ -74,8 +74,8 @@ pelas variáveis de ambiente:
 
 - `PIX_KEY` — a chave Pix que recebe (já veio preenchida com o CNPJ informado:
   `06914540000167`).
-- `PIX_MERCHANT_NAME` — "EDINALDO ALVES RIBEIRO"
-- `PIX_MERCHANT_CITY` — "BAURU SP"
+- `PIX_MERCHANT_NAME` — EDINALDO ALVES RIBEIRO
+- `PIX_MERCHANT_CITY` — BAURU SP
 
 Esses mesmos valores também aparecem no texto do contrato (nome/CNPJ da locadora e
 cidade do foro) — ajuste-os antes de gerar contratos de verdade.

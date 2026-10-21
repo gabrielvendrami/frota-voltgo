@@ -1,20 +1,51 @@
 import { Pool, type QueryResult, type QueryResultRow } from 'pg';
 
-// Aceita o nome de variável que a integração Postgres/Neon da Vercel injetar
-// (o nome mudou ao longo do tempo, então checamos as variações mais comuns).
-const connectionString =
-  process.env.POSTGRES_URL ||
-  process.env.DATABASE_URL ||
-  process.env.POSTGRES_PRISMA_URL ||
-  process.env.POSTGRES_URL_NON_POOLING ||
-  '';
+// Monta a connection string a partir do que a integração Postgres/Neon da
+// Vercel injetou. Preferimos as variáveis "não-pooled" (conexão direta) às
+// pooled/pgbouncer (POSTGRES_URL, DATABASE_URL, POSTGRES_PRISMA_URL) porque
+// o `pg` (driver cru que usamos aqui) não foi feito para falar com o
+// PgBouncer em modo transação do mesmo jeito que engines como o Prisma —
+// a conexão direta é mais previsível para esse caso de uso. Se nenhuma URL
+// pronta existir, montamos uma na mão com as variáveis PG*/POSTGRES_* que a
+// integração sempre cria (host, usuário, senha, banco).
+function resolveConnectionString(): string {
+  const prontas = [
+    process.env.POSTGRES_URL_NON_POOLING,
+    process.env.DATABASE_URL_UNPOOLED,
+    // POSTGRES_URL_NO_SSL: a mesma URL sem "sslmode=require"/"channel_binding"
+    // embutidos — pensada pra quem configura o SSL no próprio código do
+    // driver (é exatamente o nosso caso, no `ssl: { rejectUnauthorized }`
+    // logo abaixo), então evita qualquer conflito entre o que vem na query
+    // string e o que passamos explicitamente pro `pg`.
+    process.env.POSTGRES_URL_NO_SSL,
+    process.env.POSTGRES_URL,
+    process.env.DATABASE_URL,
+    process.env.POSTGRES_PRISMA_URL,
+  ];
+  for (const url of prontas) {
+    if (url) return url;
+  }
+
+  const host = process.env.PGHOST_UNPOOLED || process.env.PGHOST || process.env.POSTGRES_HOST;
+  const user = process.env.PGUSER || process.env.POSTGRES_USER;
+  const password = process.env.PGPASSWORD || process.env.POSTGRES_PASSWORD;
+  const database = process.env.PGDATABASE || process.env.POSTGRES_DATABASE;
+
+  if (host && user && password && database) {
+    return `postgres://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}/${database}?sslmode=require`;
+  }
+
+  return '';
+}
+
+const connectionString = resolveConnectionString();
 
 let pool: Pool | null = null;
 
 function getPool() {
   if (!connectionString) {
     throw new Error(
-      'Nenhuma variável de conexão com o Postgres foi encontrada (POSTGRES_URL / DATABASE_URL). ' +
+      'Nenhuma variável de conexão com o Postgres foi encontrada (POSTGRES_URL / DATABASE_URL / PGHOST+PGUSER+PGPASSWORD+PGDATABASE). ' +
         'Conecte um banco Postgres ao projeto na Vercel (aba Storage) ou rode `vercel env pull .env.local` localmente.'
     );
   }
