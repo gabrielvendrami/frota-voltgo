@@ -2,7 +2,7 @@ import { headers } from 'next/headers';
 import { ensureSchema, sql } from '@/lib/db';
 import { PageHeader } from '@/components/PageHeader';
 import { CopyButton } from '@/components/CopyButton';
-import { formatKm, inicioSemanaAtual } from '@/lib/constants';
+import { formatKm, inicioCicloAtual, nomeDiaSemana } from '@/lib/constants';
 import { createLeituraKm, deleteLeituraKm } from './actions';
 
 export default async function QuilometragemPage() {
@@ -12,7 +12,7 @@ export default async function QuilometragemPage() {
     sql`SELECT id, placa, modelo FROM veiculos ORDER BY placa`,
     sql`
       SELECT
-        v.id, v.placa, v.modelo,
+        v.id, v.placa, v.modelo, v.dia_fechamento,
         lk.data AS ultima_data, lk.km AS ultima_km, lk.origem AS ultima_origem
       FROM veiculos v
       LEFT JOIN LATERAL (
@@ -39,7 +39,6 @@ export default async function QuilometragemPage() {
   const host = headers().get('host') || 'localhost:3000';
   const proto = host.includes('localhost') || host.includes('127.0.0.1') ? 'http' : 'https';
   const baseUrl = `${proto}://${host}`;
-  const inicioSemana = inicioSemanaAtual();
 
   return (
     <div>
@@ -51,14 +50,18 @@ export default async function QuilometragemPage() {
       <p className="text-lg font-semibold text-slate-900 mb-3">Envio semanal pelo motorista</p>
       <div className="space-y-3 mb-8">
         {statusVeiculos.map((v: any) => {
-          const enviouEssaSemana = v.ultima_data && new Date(v.ultima_data).toISOString().slice(0, 10) >= inicioSemana;
+          const diaFechamento = v.dia_fechamento ?? 1;
+          const inicioCiclo = inicioCicloAtual(diaFechamento);
+          const enviouEssaSemana = v.ultima_data && new Date(v.ultima_data).toISOString().slice(0, 10) >= inicioCiclo;
           const link = `${baseUrl}/km/${v.placa}`;
           return (
             <div key={v.id} className="card p-5">
               <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                 <div>
                   <p className="font-bold text-slate-900">{v.placa}</p>
-                  <p className="text-sm text-slate-500">{v.modelo}</p>
+                  <p className="text-sm text-slate-500">
+                    {v.modelo} · fecha toda {nomeDiaSemana(diaFechamento)}
+                  </p>
                 </div>
                 <span
                   className={`pill ${enviouEssaSemana ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}

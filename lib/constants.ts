@@ -30,17 +30,39 @@ export function formatMesExtenso(referenciaMes: string) {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
+export const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+export function nomeDiaSemana(dia: number): string {
+  return DIAS_SEMANA[dia] ?? DIAS_SEMANA[1];
+}
+
 /**
- * Data (YYYY-MM-DD) da segunda-feira da semana de `referencia` (hoje, por
- * padrão), em UTC. Usado para saber se o motorista já enviou a leitura de
- * KM "desta semana" (segunda a domingo).
+ * Data (YYYY-MM-DD) do início do ciclo semanal atual de um veículo, em UTC.
+ * Cada veículo tem seu próprio "dia de fechamento" (0=domingo ... 6=sábado,
+ * configurável em Veículos) — é nesse dia que o motorista deve mandar a
+ * leitura de KM pra fechar a semana anterior. O início do ciclo é a
+ * ocorrência mais recente desse dia da semana, igual ou anterior a
+ * `referencia` (hoje, por padrão).
  */
-export function inicioSemanaAtual(referencia: Date = new Date()): string {
+export function inicioCicloAtual(diaFechamento: number, referencia: Date = new Date()): string {
   const d = new Date(Date.UTC(referencia.getUTCFullYear(), referencia.getUTCMonth(), referencia.getUTCDate()));
-  const dia = d.getUTCDay(); // 0 = domingo, 1 = segunda, ...
-  const diffParaSegunda = dia === 0 ? -6 : 1 - dia;
-  d.setUTCDate(d.getUTCDate() + diffParaSegunda);
+  const diaAtual = d.getUTCDay();
+  const diff = (diaAtual - diaFechamento + 7) % 7;
+  d.setUTCDate(d.getUTCDate() - diff);
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Próximo marco de revisão de fábrica (a cada 20.000 km, cláusula 4.2 do
+ * contrato) a partir da última quilometragem conhecida, e quantos km faltam
+ * pra chegar lá. Usado pra avisar com antecedência (cláusula 4.3 pede pelo
+ * menos 1.000 km de aviso prévio).
+ */
+export function proximaRevisao(ultimoKm: number) {
+  const PASSO = 20000;
+  const proximoMarco = Math.ceil((ultimoKm + 1) / PASSO) * PASSO;
+  const faltam = proximoMarco - ultimoKm;
+  return { proximoMarco, faltam };
 }
 
 export function whatsappLinkTo(telefone: string, message: string) {

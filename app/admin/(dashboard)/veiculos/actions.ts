@@ -16,12 +16,14 @@ export async function createVeiculo(formData: FormData) {
   const valorLocacao = valorLocacaoRaw ? Number(valorLocacaoRaw.replace(',', '.')) : null;
   const valorSeguroRaw = String(formData.get('valor_seguro_semanal') || '').trim();
   const valorSeguro = valorSeguroRaw ? Number(valorSeguroRaw.replace(',', '.')) : null;
+  const diaFechamentoRaw = String(formData.get('dia_fechamento') || '').trim();
+  const diaFechamento = diaFechamentoRaw ? parseInt(diaFechamentoRaw, 10) : 1;
 
   if (!placa) return;
 
   await sql`
-    INSERT INTO veiculos (placa, modelo, cor, ano, chassi, renavam, valor_locacao_semanal, valor_seguro_semanal)
-    VALUES (${placa}, ${modelo}, ${cor}, ${ano}, ${chassi}, ${renavam}, ${valorLocacao}, ${valorSeguro})
+    INSERT INTO veiculos (placa, modelo, cor, ano, chassi, renavam, valor_locacao_semanal, valor_seguro_semanal, dia_fechamento)
+    VALUES (${placa}, ${modelo}, ${cor}, ${ano}, ${chassi}, ${renavam}, ${valorLocacao}, ${valorSeguro}, ${diaFechamento})
   `;
   revalidatePath('/admin/veiculos');
   revalidatePath('/admin');
@@ -32,6 +34,15 @@ export async function updateVeiculoStatus(id: number, formData: FormData) {
   const status = String(formData.get('status') || 'disponivel');
   await sql`UPDATE veiculos SET status = ${status} WHERE id = ${id}`;
   revalidatePath('/admin/veiculos');
+}
+
+export async function updateDiaFechamento(id: number, formData: FormData) {
+  await ensureSchema();
+  const diaFechamento = parseInt(String(formData.get('dia_fechamento') || '1'), 10);
+  await sql`UPDATE veiculos SET dia_fechamento = ${diaFechamento} WHERE id = ${id}`;
+  revalidatePath('/admin/veiculos');
+  revalidatePath('/admin/quilometragem');
+  revalidatePath('/admin');
 }
 
 export async function deleteVeiculo(id: number, _formData: FormData) {

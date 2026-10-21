@@ -1,8 +1,8 @@
 import { ensureSchema, sql } from '@/lib/db';
 import { PageHeader } from '@/components/PageHeader';
 import { StatusSelect } from '@/components/StatusSelect';
-import { formatBRL } from '@/lib/constants';
-import { createVeiculo, deleteVeiculo, updateVeiculoStatus } from './actions';
+import { formatBRL, formatKm, DIAS_SEMANA, proximaRevisao } from '@/lib/constants';
+import { createVeiculo, deleteVeiculo, updateVeiculoStatus, updateDiaFechamento } from './actions';
 
 const STATUS_OPTIONS = [
   { value: 'disponivel', label: 'Disponível' },
@@ -18,12 +18,19 @@ const STATUS_COLORS: Record<string, string> = {
   inativo: 'bg-slate-100 text-slate-500',
 };
 
+const DIA_OPTIONS = DIAS_SEMANA.map((label, value) => ({ value: String(value), label }));
+
 export default async function VeiculosPage() {
   await ensureSchema();
   const { rows } = await sql`
-    SELECT v.*, m.nome AS motorista_nome
+    SELECT
+      v.*, m.nome AS motorista_nome,
+      lk.km AS ultima_km
     FROM veiculos v
     LEFT JOIN motoristas m ON m.id = v.motorista_id
+    LEFT JOIN LATERAL (
+      SELECT km FROM leituras_km WHERE veiculo_id = v.id ORDER BY data DESC, created_at DESC LIMIT 1
+    ) lk ON true
     ORDER BY v.placa
   `;
 
@@ -70,6 +77,16 @@ export default async function VeiculosPage() {
         <div>
           <label className="label-lg">Renavam</label>
           <input name="renavam" className="field-lg mt-1" />
+        </div>
+        <div>
+          <label className="label-lg">Dia de fechamento da semana</label>
+          <select name="dia_fechamento" defaultValue="1" className="field-lg mt-1">
+            {DIA_OPTIONS.map((d) => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
+          </select>
         </div>
         <button type="submit" className="btn-primary md:col-span-2">
           + Adicionar veículo
@@ -126,11 +143,32 @@ export default async function VeiculosPage() {
               )}
             </dl>
 
+            {v.ultima_km != null && (() => {
+              const { proximoMarco, faltam } = proximaRevisao(Number(v.ultima_km));
+              const perto = faltam <= 1000;
+              return (
+                <p className={`text-xs mt-3 ${perto ? 'text-amber-700 font-medium' : 'text-slate-400'}`}>
+                  {perto ? '⚠️ ' : '🔧 '}
+                  Próxima revisão aos {formatKm(proximoMarco)} — faltam {formatKm(faltam)}
+                </p>
+              );
+            })()}
+
             <div className="flex items-center justify-between gap-3 mt-4">
               <StatusSelect value={v.status} options={STATUS_OPTIONS} action={updateVeiculoStatus.bind(null, v.id)} />
               <form action={deleteVeiculo.bind(null, v.id)}>
                 <button className="text-red-600 text-sm font-medium">Excluir</button>
               </form>
+            </div>
+
+            <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-slate-100">
+              <span className="text-xs text-slate-400">Fecha a semana toda:</span>
+              <StatusSelect
+                name="dia_fechamento"
+                value={String(v.dia_fechamento ?? 1)}
+                options={DIA_OPTIONS}
+                action={updateDiaFechamento.bind(null, v.id)}
+              />
             </div>
           </div>
         ))}

@@ -104,6 +104,7 @@ async function createSchema() {
       renavam TEXT,
       valor_locacao_semanal NUMERIC(10,2),
       valor_seguro_semanal NUMERIC(10,2),
+      dia_fechamento SMALLINT NOT NULL DEFAULT 1,
       status TEXT NOT NULL DEFAULT 'disponivel',
       motorista_id INTEGER REFERENCES motoristas(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -118,6 +119,11 @@ async function createSchema() {
   await sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS cor TEXT`;
   await sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS valor_locacao_semanal NUMERIC(10,2)`;
   await sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS valor_seguro_semanal NUMERIC(10,2)`;
+  // Dia da semana em que o "ciclo" de envio de KM daquele veículo fecha
+  // (0=domingo ... 6=sábado). Por padrão 1 (segunda), que é como o sistema
+  // já se comportava antes disso existir — então veículos já cadastrados
+  // continuam funcionando exatamente igual depois dessa migração.
+  await sql`ALTER TABLE veiculos ADD COLUMN IF NOT EXISTS dia_fechamento SMALLINT NOT NULL DEFAULT 1`;
 
   await sql`
     CREATE TABLE IF NOT EXISTS vinculos (

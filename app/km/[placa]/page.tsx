@@ -1,5 +1,5 @@
 import { ensureSchema, sql } from '@/lib/db';
-import { formatKm, inicioSemanaAtual } from '@/lib/constants';
+import { formatKm, inicioCicloAtual } from '@/lib/constants';
 import { registrarKmMotorista } from './actions';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,7 @@ export default async function EnvioKmPage({
   const placaNorm = normalizarPlaca(params.placa);
 
   const { rows } = await sql`
-    SELECT id, placa, modelo, cor
+    SELECT id, placa, modelo, cor, dia_fechamento
     FROM veiculos
     WHERE UPPER(REGEXP_REPLACE(placa, '[^A-Za-z0-9]', '', 'g')) = ${placaNorm}
   `;
@@ -47,8 +47,8 @@ export default async function EnvioKmPage({
     LIMIT 1
   `;
   const ultima = ultimaRes.rows[0];
-  const inicioSemana = inicioSemanaAtual();
-  const jaEnviouEssaSemana = !!ultima && new Date(ultima.data).toISOString().slice(0, 10) >= inicioSemana;
+  const inicioCiclo = inicioCicloAtual(veiculo.dia_fechamento ?? 1);
+  const jaEnviouEssaSemana = !!ultima && new Date(ultima.data).toISOString().slice(0, 10) >= inicioCiclo;
 
   if (searchParams.ok === '1') {
     return (
