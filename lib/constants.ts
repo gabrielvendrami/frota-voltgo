@@ -1,0 +1,52 @@
+export const BRAND = {
+  name: 'VoltGo Frota',
+};
+
+export const KM_FRANQUIA_MENSAL = Number(process.env.KM_FRANQUIA_MENSAL || 8000);
+// O contrato que você mandou usa R$ 0,70/km (a mensagem original tinha dito
+// R$ 0,75) — segui o valor do contrato como padrão. Ajuste a env var se
+// R$ 0,75 for o valor certo; tanto a cobrança quanto o texto do contrato
+// usam essa mesma variável, então não precisa editar o .docx para corrigir.
+export const VALOR_KM_EXCEDENTE = Number(process.env.VALOR_KM_EXCEDENTE || 0.7);
+// Franquia do seguro em caso de sinistro (Cláusula 3.2 do contrato).
+export const FRANQUIA_SINISTRO_VALOR = Number(process.env.FRANQUIA_SINISTRO_VALOR || 8845);
+
+export function formatBRL(value: number) {
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+export function formatKm(value: number) {
+  return `${value.toLocaleString('pt-BR')} km`;
+}
+
+export function formatNumeroBR(value: number) {
+  return value.toLocaleString('pt-BR');
+}
+
+export function formatMesExtenso(referenciaMes: string) {
+  const [ano, mes] = referenciaMes.split('-').map(Number);
+  const date = new Date(Date.UTC(ano, (mes || 1) - 1, 1));
+  const texto = date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
+/**
+ * Data (YYYY-MM-DD) da segunda-feira da semana de `referencia` (hoje, por
+ * padrão), em UTC. Usado para saber se o motorista já enviou a leitura de
+ * KM "desta semana" (segunda a domingo).
+ */
+export function inicioSemanaAtual(referencia: Date = new Date()): string {
+  const d = new Date(Date.UTC(referencia.getUTCFullYear(), referencia.getUTCMonth(), referencia.getUTCDate()));
+  const dia = d.getUTCDay(); // 0 = domingo, 1 = segunda, ...
+  const diffParaSegunda = dia === 0 ? -6 : 1 - dia;
+  d.setUTCDate(d.getUTCDate() + diffParaSegunda);
+  return d.toISOString().slice(0, 10);
+}
+
+export function whatsappLinkTo(telefone: string, message: string) {
+  const digits = telefone.replace(/\D/g, '');
+  if (!digits) return '#';
+  // Garante código do país (Brasil) quando o telefone foi digitado sem DDI.
+  const withCountry = digits.length <= 11 ? `55${digits}` : digits;
+  return `https://wa.me/${withCountry}?text=${encodeURIComponent(message)}`;
+}

@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-size: 16px;
+}
+
+@layer components {
+  /* Botões grandes, pensados para toque — alvo mínimo de 56px de altura. */
+  .btn-lg {
+    @apply inline-flex items-center justify-center gap-3 rounded-2xl px-6 py-4 text-base font-semibold min-h-[56px] transition active:scale-[0.98];
+  }
+  .btn-primary {
+    @apply btn-lg bg-blue-600 text-white hover:bg-blue-700;
+  }
+  .btn-secondary {
+    @apply btn-lg border-2 border-slate-300 text-slate-700 hover:bg-slate-100;
+  }
+  .btn-danger {
+    @apply btn-lg bg-red-50 text-red-700 border-2 border-red-200 hover:bg-red-100;
+  }
+  .field-lg {
+    @apply w-full rounded-xl border-2 border-slate-300 px-4 py-3.5 text-base text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100;
+  }
+  .card {
+    @apply bg-white border border-slate-200 rounded-2xl shadow-sm;
+  }
+  .tile {
+    @apply card flex flex-col items-center justify-center gap-3 p-6 text-center hover:border-blue-300 hover:shadow transition;
+  }
+  .label-lg {
+    @apply text-sm font-medium text-slate-600;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold;
+  }
+}

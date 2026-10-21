@@ -1,0 +1,25 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# env
+.env
+.env.local
+.env*.local
+
+# misc
+.DS_Store
+*.log
+npm-debug.log*
+
+# vercel
+.vercel
+
+# fotos enviadas localmente (fallback de dev sem Vercel Blob configurado)
+/public/uploads/
