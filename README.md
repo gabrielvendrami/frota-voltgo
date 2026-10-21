@@ -75,7 +75,7 @@ pelas variáveis de ambiente:
 - `PIX_KEY` — a chave Pix que recebe: `06914540000167`.
 - `PIX_MERCHANT_NAME` — nome do titular, como está no banco: `EDINALDO ALVES RIBEIRO`
   (até 25 caracteres; o sistema remove acentos e corta automaticamente).
-- `PIX_MERCHANT_CITY` — cidade do titular: `BAURU SP` (até 15 caracteres).
+- `PIX_MERCHANT_CITY` — cidade do titular: `BAURU SP` (até 15 caracteres)
 
 > **Importante:** o README e o `.env.example` são só documentação — o que vale em
 > produção são as variáveis cadastradas na Vercel (**Settings → Environment
