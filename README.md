@@ -74,8 +74,8 @@ pelas variáveis de ambiente:
 
 - `PIX_KEY` — a chave Pix que recebe (já veio preenchida com o CNPJ informado:
   `06914540000167`).
-- `PIX_MERCHANT_NAME` — EDINALDO ALVES RIBEIRO
-- `PIX_MERCHANT_CITY` — BAURU SP
+- `PIX_MERCHANT_NAME` — "EDINALDO ALVES RIBEIRO"
+- `PIX_MERCHANT_CITY` — "BAURU SP"
 
 Esses mesmos valores também aparecem no texto do contrato (nome/CNPJ da locadora e
 cidade do foro) — ajuste-os antes de gerar contratos de verdade.
@@ -85,9 +85,14 @@ cidade do foro) — ajuste-os antes de gerar contratos de verdade.
 As fotos enviadas pelo motorista em `/km/<placa>` são guardadas no **Vercel Blob**
 (armazenamento de arquivos da própria Vercel). Pra habilitar:
 
-1. No projeto na Vercel, aba **Storage** → **Create Database** → **Blob** → conecte
-   ao projeto (injeta `BLOB_READ_WRITE_TOKEN` automaticamente, igual ao Postgres).
-2. Pronto — não precisa de mais nada, o upload já funciona.
+1. No projeto na Vercel, aba **Storage** → **Create Database** → **Blob**.
+2. Na hora de criar, escolha **Private** (não Public) — essa escolha não pode ser
+   trocada depois. O sistema já está preparado pra isso: a foto nunca fica
+   acessível por link direto, só por quem está logado no painel (a tela de
+   Quilometragem busca a foto através de `/admin/fotos/<id>`, que exige login e
+   busca o conteúdo no Blob usando o token no servidor).
+3. Conecte o Blob ao projeto (injeta `BLOB_READ_WRITE_TOKEN` automaticamente,
+   igual ao Postgres) e faça o redeploy.
 
 Sem essa variável configurada, o envio de foto falha em produção com uma mensagem
 pedindo pra conectar o Blob. Rodando localmente (`npm run dev`), as fotos caem num
@@ -132,9 +137,10 @@ mesmas tags nos lugares certos, salvar como `templates/contrato-modelo.docx`
 2. Na Vercel, **Add New → Project** e importe o repositório.
 3. Aba **Storage** do projeto → **Create Database** → **Postgres** (Neon) → conecte
    ao projeto (injeta `POSTGRES_URL` / `DATABASE_URL` automaticamente).
-3.1. Ainda em **Storage** → **Create Database** → **Blob** → conecte ao projeto
-   também (injeta `BLOB_READ_WRITE_TOKEN`) — é o que guarda as fotos do hodômetro
-   enviadas pelos motoristas.
+3.1. Ainda em **Storage** → **Create Database** → **Blob** (escolha **Private**) →
+   conecte ao projeto também (injeta `BLOB_READ_WRITE_TOKEN`) — é o que guarda as
+   fotos do hodômetro enviadas pelos motoristas. Veja a seção "Fotos do hodômetro"
+   mais abaixo.
 4. Em **Settings → Environment Variables**, adicione:
    - `SESSION_SECRET` — string aleatória (ex.: `openssl rand -hex 32`).
    - `ADMIN_USER` / `ADMIN_PASSWORD` — opcional, senão fica `admin` / `admin`.

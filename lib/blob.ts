@@ -11,10 +11,17 @@ function extensaoDoArquivo(file: File): string {
 }
 
 /**
- * Salva a foto do hodômetro enviada pelo motorista e devolve a URL pública
- * dela. Em produção (Vercel), usa o Vercel Blob — é só conectar o Blob ao
- * projeto (aba Storage → Create Database → Blob) que a variável
+ * Salva a foto do hodômetro enviada pelo motorista e devolve a URL dela
+ * (guardada em `leituras_km.foto_url`). Em produção (Vercel), usa o Vercel
+ * Blob como store **privado** — é só conectar o Blob ao projeto (aba Storage
+ * → Create Database → Blob → escolha "Private") que a variável
  * BLOB_READ_WRITE_TOKEN é injetada automaticamente.
+ *
+ * Como o store é privado, a URL salva não é acessível direto por link —
+ * só autenticado (com o token). No admin, a foto é servida através da rota
+ * `/admin/fotos/[id]` (ver app/admin/(dashboard)/fotos/[id]/route.ts), que
+ * busca o conteúdo com esse mesmo token — assim só quem está logado no
+ * painel consegue ver a foto, mesmo que a URL do blob vaze.
  *
  * Sem essa variável, caímos num fallback que grava em `public/uploads/`
  * localmente — só serve para rodar/testar em ambiente local, já que o
@@ -27,7 +34,7 @@ export async function salvarFotoHodometro(file: File, placa: string): Promise<st
 
   if (process.env.BLOB_READ_WRITE_TOKEN) {
     const { put } = await import('@vercel/blob');
-    const blob = await put(nomeArquivo, file, { access: 'public' });
+    const blob = await put(nomeArquivo, file, { access: 'private' });
     return blob.url;
   }
 

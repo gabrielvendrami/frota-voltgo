@@ -144,7 +144,7 @@ export default async function QuilometragemPage() {
                 {l.foto_url && (
                   <>
                     {' · '}
-                    <a href={l.foto_url} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+                    <a href={`/admin/fotos/${l.id}`} target="_blank" rel="noreferrer" className="text-blue-600 underline">
                       ver foto
                     </a>
                   </>
